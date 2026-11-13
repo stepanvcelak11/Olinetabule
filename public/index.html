@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online tabule</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="landing">
+  <main class="landing-card">
+    <div class="logo">✏️</div>
+    <h1>Online tabule</h1>
+    <p>Sdílená tabule pro doučování v reálném čase. Vytvořte novou tabuli, pošlete odkaz studentovi a pište spolu.</p>
+    <a class="btn primary big" href="/new">Vytvořit novou tabuli</a>
+    <form id="joinForm" class="join">
+      <input id="joinInput" placeholder="…nebo vložte odkaz / kód tabule" autocomplete="off">
+      <button class="btn" type="submit">Připojit</button>
+    </form>
+  </main>
+  <script>
+    document.getElementById('joinForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = document.getElementById('joinInput').value.trim();
+      if (!v) return;
+      var m = v.match(/\/b\/([a-zA-Z0-9_-]{4,64})/) || v.match(/^([a-zA-Z0-9_-]{4,64})$/);
+      if (m) location.href = '/b/' + m[1];
+      else alert('Neplatný odkaz nebo kód tabule.');
+    });
+  </script>
+</body>
+</html>
