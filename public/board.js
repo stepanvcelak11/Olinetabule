@@ -1152,6 +1152,9 @@
   function setColor(c) {
     state.color = c;
     $('customColor').value = c;
+    const wrap = $('customColorWrap');
+    wrap.style.setProperty('--c', c);
+    wrap.classList.toggle('active', !COLORS.includes(c));
     renderColors();
     // změna barvy vybraného prvku
     const el = selectedId && elements.get(selectedId);
@@ -1288,10 +1291,10 @@
       el = document.createElement('div');
       el.className = 'rcursor';
       el.dataset.id = id;
-      el.innerHTML = '<div class="dot"></div><div class="label"></div>';
+      el.innerHTML = '<svg class="arrow" viewBox="0 0 20 20"><path d="M2 1l6 17 2.6-6.9L17 8.8z"/></svg><div class="label"></div>';
       cursorsEl.appendChild(el);
     }
-    el.querySelector('.dot').style.background = u.color;
+    el.querySelector('.arrow path').setAttribute('fill', u.color);
     const label = el.querySelector('.label');
     label.style.background = u.color;
     if (label.textContent !== u.name) label.textContent = u.name;
