@@ -18,15 +18,78 @@
       <button class="btn" type="submit">Připojit</button>
     </form>
   </main>
+
+  <section class="boards" id="boards" hidden>
+    <h2>Moje tabule</h2>
+    <ul id="boardList"></ul>
+  </section>
+
   <script>
-    document.getElementById('joinForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var v = document.getElementById('joinInput').value.trim();
-      if (!v) return;
-      var m = v.match(/\/b\/([a-zA-Z0-9_-]{4,64})/) || v.match(/^([a-zA-Z0-9_-]{4,64})$/);
-      if (m) location.href = '/b/' + m[1];
-      else alert('Neplatný odkaz nebo kód tabule.');
-    });
+    (function () {
+      document.getElementById('joinForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = document.getElementById('joinInput').value.trim();
+        if (!v) return;
+        var m = v.match(/\/b\/([a-zA-Z0-9_-]{4,64})(#owner=[\w-]+)?/) || v.match(/^([a-zA-Z0-9_-]{4,64})$/);
+        if (m) location.href = '/b/' + m[1] + (m[2] || '');
+        else alert('Neplatný odkaz nebo kód tabule.');
+      });
+
+      // Seznam tabulí, které jste na tomto zařízení otevřeli
+      function load() {
+        try { return JSON.parse(localStorage.getItem('tabule-boards') || '[]'); } catch (e) { return []; }
+      }
+      function save(list) {
+        try { localStorage.setItem('tabule-boards', JSON.stringify(list)); } catch (e) { /* nic */ }
+      }
+      function when(ts) {
+        var d = new Date(ts), now = new Date();
+        var days = Math.floor((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
+        var time = d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+        if (days === 0) return 'dnes ' + time;
+        if (days === 1) return 'včera ' + time;
+        return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+      }
+      function render() {
+        var list = load();
+        var box = document.getElementById('boards');
+        var ul = document.getElementById('boardList');
+        box.hidden = !list.length;
+        ul.innerHTML = '';
+        list.forEach(function (b) {
+          var li = document.createElement('li');
+          li.className = 'board-row';
+          var a = document.createElement('a');
+          a.href = '/b/' + encodeURIComponent(b.id);
+          var t = document.createElement('span');
+          t.className = 'bt';
+          t.textContent = b.title || 'Tabule ' + b.id;
+          if (b.owner) {
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = 'lektor';
+            t.appendChild(tag);
+          }
+          var m = document.createElement('span');
+          m.className = 'bm';
+          m.textContent = 'Naposledy otevřeno ' + when(b.visited);
+          a.appendChild(t);
+          a.appendChild(m);
+          var del = document.createElement('button');
+          del.className = 'btn icon';
+          del.title = 'Odebrat ze seznamu (tabule se nesmaže)';
+          del.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+          del.onclick = function () {
+            save(load().filter(function (x) { return x.id !== b.id; }));
+            render();
+          };
+          li.appendChild(a);
+          li.appendChild(del);
+          ul.appendChild(li);
+        });
+      }
+      render();
+    })();
   </script>
 </body>
 </html>

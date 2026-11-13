@@ -19,6 +19,23 @@ a všichni připojení (student, případně další) na ní mohou zároveň ps�
 - **Tablety a stylusy** – funguje na iPadu i s perem; když se použije stylus, prst slouží jen k posunu (ochrana proti dlani).
 - Při výpadku spojení se čáry uloží a po znovupřipojení odešlou.
 
+### Vylepšení pro doučování
+
+- **Lektor a student** – kdo tabuli založí, je lektor (pozná ho to podle tajného klíče uloženého v prohlížeči).
+  Lektor může tabuli pojmenovat (klik na název vlevo nahoře), mazat celé strany a **zamknout kreslení** studentům
+  (ikona zámku) – student pak může jen ukazovat laserem. Přes „Sdílet odkaz → Lektorský odkaz“ si lektor otevře
+  tabuli se stejnými právy na dalším zařízení (tento odkaz neposílejte studentům).
+- **Více stran** – lišta dole: předchozí / další strana (PageUp / PageDown), přidat a smazat stranu.
+- **Sledovat lektora** (volitelné) – student si může zapnout tlačítko „Sledovat lektora“; jeho pohled se pak
+  posouvá, přibližuje a přepíná strany spolu s lektorem. Jakmile si student sám posune plochu, sledování se vypne.
+- **Laserové ukazovátko** (K) – červená stopa, která po chvíli zmizí; funguje i na zamčené tabuli.
+- **Matematika** (ikona Σ): pravítko (měří délku v jednotkách mřížky, 1 j = 1 čtvereček),
+  úhloměr (vrchol → první rameno → druhé rameno), souřadnicové osy jedním klikem a **vzorce v LaTeXu**
+  s tlačítky pro zlomky, odmocniny, mocniny, soustavy rovnic apod. Dvojklik na vzorec = úprava.
+- **Export** – PNG aktuální strany nebo **PDF všech stran** (např. jako zápis pro studenta po hodině).
+- **Moje tabule** – úvodní stránka ukazuje tabule otevřené na tomto zařízení.
+- **Vzhled** – bílá, tmavá nebo zelená školní tabule (tmavý inkoust se na tmavém pozadí zobrazí jako křída).
+
 ### Klávesové zkratky
 
 | Klávesa | Nástroj | Klávesa | Nástroj |
@@ -29,6 +46,7 @@ a všichni připojení (student, případně další) na ní mohou zároveň ps�
 | M | zvýrazňovač | O | elipsa |
 | E | guma | T | text |
 | X | mazání tahů | Delete | smazat vybrané |
+| K | laser | PageUp / PageDown | předchozí / další strana |
 
 ## Spuštění na vlastním počítači
 
@@ -54,3 +72,13 @@ Aplikace je jeden Node.js server, dá se nasadit např. na **Render.com**, **Rai
 Tabule se ukládají jako JSON soubory do složky `data/` (lze změnit proměnnou `DATA_DIR`).
 Na hostingu bez trvalého disku se po restartu serveru smažou – pro trvalé ukládání připojte
 k službě perzistentní disk a nastavte na něj `DATA_DIR`. Port se bere z proměnné `PORT`.
+
+## Vrácení vylepšení zpět
+
+Vylepšení (lektor/zámek, strany, sledování lektora, laser, matematické pomůcky, PDF, seznam tabulí, tmavé/zelené pozadí)
+jsou v commitech označených **`[Vylepšení]`**. Verze před nimi je commit `eac3198`.
+
+- Vrátit všechna vylepšení: `git revert --no-edit eac3198..HEAD`
+- Vrátit jen některý commit: `git revert <hash>` (hash najdete přes `git log --oneline`)
+
+Tabule uložené novou verzí zůstanou čitelné i ve staré verzi (strany navíc se ale zobrazí všechny přes sebe).

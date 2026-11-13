@@ -16,26 +16,28 @@
   </div>
 
   <header id="topbar">
-    <a href="/" class="brand" title="Domů"><svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#2563eb"/><path d="M8 22c3-1 4-7 7-7s2 5 5 5 3-6 4-8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Tabule</span></a>
+    <div class="brand">
+      <a href="/" title="Moje tabule"><svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#2563eb"/><path d="M8 22c3-1 4-7 7-7s2 5 5 5 3-6 4-8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <button id="titleBtn" class="title-btn" title="Název tabule">Tabule</button>
+    </div>
     <div id="actions">
       <button class="btn icon" id="undoBtn" title="Zpět (Ctrl+Z)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg></button>
       <button class="btn icon" id="redoBtn" title="Znovu (Ctrl+Y)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></svg></button>
       <span class="sep"></span>
-      <label class="select-wrap" title="Pozadí tabule"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><select id="bgSelect">
-      <option value="grid">Čtverečky</option>
-      <option value="lines">Linky</option>
-      <option value="dots">Tečky</option>
-      <option value="blank">Čisté</option>
-      </select></label>
+      <button class="btn menu-btn" id="bgBtn" title="Vzhled tabule"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><span class="lbl">Vzhled</span><svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <span class="sep"></span>
-      <button class="btn icon" id="exportBtn" title="Uložit jako obrázek (PNG)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
-      <button class="btn icon danger" id="clearBtn" title="Vymazat celou tabuli"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg></button>
+      <button class="btn icon" id="exportBtn" title="Uložit (PNG / PDF)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
+      <button class="btn icon owner-only" id="lockBtn" title="Zamknout kreslení studentům"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path class="shackle" d="M8 11V8a4 4 0 018 0v3"/></svg></button>
+      <button class="btn icon danger owner-only" id="clearBtn" title="Vymazat tuto stranu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg></button>
     </div>
     <div class="spacer"></div>
+    <button class="btn follow-btn" id="followBtn" hidden title="Váš pohled se bude posouvat spolu s lektorem"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Sledovat lektora</span></button>
     <div id="users"></div>
     <span id="status" class="status" title="Stav připojení"></span>
     <button class="btn primary" id="shareBtn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg><span>Sdílet odkaz</span></button>
   </header>
+
+  <div id="lockBanner" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Lektor tabuli uzamkl – můžete se dívat a ukazovat laserem.</div>
 
   <nav id="toolbar">
     <div class="group tools">
@@ -51,6 +53,8 @@
       <button class="tool" data-tool="ellipse" title="Elipsa (O) – Shift = kruh"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7"/></svg></button>
       <button class="tool" data-tool="text" title="Text (T)"><svg viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg></button>
       <button class="tool" id="imageBtn" title="Vložit obrázek (lze i Ctrl+V nebo přetáhnout)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 18l6-5 4 3 3-2 5 4"/></svg></button>
+      <button class="tool" data-tool="laser" title="Laserové ukazovátko (K) – stopa po chvíli zmizí"><svg viewBox="0 0 24 24"><circle cx="17" cy="7" r="2.5" class="laser-dot"/><path d="M3 21l11-11M14.5 3.5l.5-1.5M20.5 9.5l1.5-.5M20 4l1-1"/></svg></button>
+      <button class="tool" id="mathBtn" title="Matematika: pravítko, úhloměr, osy, vzorce"><svg viewBox="0 0 24 24"><path d="M18 5H7l6 7-6 7h11"/></svg></button>
       <input type="file" id="imageInput" accept="image/*" hidden multiple>
     </div>
 
@@ -62,6 +66,14 @@
     <label class="fill-toggle" title="Vyplnit tvary"><input type="checkbox" id="fillShapes"> Výplň</label>
   </nav>
 
+  <div id="pager">
+    <button class="btn icon" id="prevPage" title="Předchozí strana (PageUp)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <span id="pageLabel" title="Strana">1 / 1</span>
+    <button class="btn icon" id="nextPage" title="Další strana (PageDown)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <span class="sep"></span>
+    <button class="btn icon" id="addPage" title="Přidat novou stranu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg></button>
+    <button class="btn icon danger owner-only" id="delPage" title="Smazat tuto stranu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 14h6"/></svg></button>
+  </div>
 
   <div id="zoom">
     <button class="btn icon" id="zoomOut" title="Oddálit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
@@ -70,8 +82,39 @@
   </div>
 
   <div id="selectionBar" hidden>
+    <button class="btn" id="editSelBtn" hidden title="Upravit vzorec"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19z"/></svg>Upravit</button>
     <button class="btn" id="dupBtn" title="Duplikovat (Ctrl+D)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>Duplikovat</button>
     <button class="btn danger" id="delBtn" title="Smazat (Delete)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>Smazat</button>
+  </div>
+
+  <!-- Vyskakovací nabídky -->
+  <div class="menu" id="bgMenu" hidden>
+    <div class="menu-title">Pozadí</div>
+    <button data-bg="grid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Čtverečky</button>
+    <button data-bg="lines"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18"/></svg>Linky</button>
+    <button data-bg="dots"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01" stroke-width="2.6"/></svg>Tečky</button>
+    <button data-bg="blank"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Čisté</button>
+    <div class="menu-title">Barva tabule</div>
+    <button data-theme="light"><span class="theme-dot" style="background:#fff"></span>Bílá</button>
+    <button data-theme="dark"><span class="theme-dot" style="background:#1b1f27"></span>Tmavá</button>
+    <button data-theme="green"><span class="theme-dot" style="background:#2f5d46"></span>Zelená školní</button>
+  </div>
+
+  <div class="menu" id="exportMenu" hidden>
+    <button data-export="png"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 18l6-5 4 3 3-2 5 4"/></svg>Obrázek PNG <small>tato strana</small></button>
+    <button data-export="pdf"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>PDF <small>všechny strany</small></button>
+  </div>
+
+  <div class="menu" id="shareMenu" hidden>
+    <button data-share="student"><svg class="i" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>Odkaz pro studenta</button>
+    <button data-share="owner"><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>Lektorský odkaz <small>jen pro vaše další zařízení</small></button>
+  </div>
+
+  <div class="menu" id="mathMenu" hidden>
+    <button data-math="measure"><svg class="i" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>Pravítko <small>změří délku</small></button>
+    <button data-math="angle"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h16M4 20L15 5"/><path d="M10 20a6 6 0 00-2.4-4.8"/></svg>Úhloměr <small>změří úhel</small></button>
+    <button data-math="axes"><svg class="i" viewBox="0 0 24 24"><path d="M12 21V3M3 12h18M9 6l3-3 3 3M18 9l3 3-3 3"/></svg>Souřadnicové osy</button>
+    <button data-math="formula"><svg class="i" viewBox="0 0 24 24"><path d="M4 12h6M7 9v6M14 8h6M14 16h6M17 5v6" /></svg>Vzorec <small>zlomky, odmocniny…</small></button>
   </div>
 
   <div id="toast" hidden></div>
@@ -82,6 +125,19 @@
       <p>Jméno uvidí ostatní na tabuli.</p>
       <input id="nameInput" maxlength="40" placeholder="Vaše jméno" autocomplete="name" required>
       <button class="btn primary big" type="submit">Vstoupit na tabuli</button>
+    </form>
+  </div>
+
+  <div id="formulaModal" class="modal" hidden>
+    <form class="modal-card wide" id="formulaForm">
+      <h2>Vzorec</h2>
+      <div class="formula-keys" id="formulaKeys"></div>
+      <textarea id="formulaInput" rows="2" spellcheck="false" placeholder="např. x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"></textarea>
+      <div id="formulaPreview" class="formula-preview"><span class="muted">Náhled vzorce</span></div>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="formulaCancel">Zrušit</button>
+        <button class="btn primary" type="submit" id="formulaOk">Vložit</button>
+      </div>
     </form>
   </div>
 
