@@ -83,7 +83,10 @@ body.privileged .owner-only { display: inline-flex !important; }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
 
 /* ---------- Tabule ---------- */
-.board-page { overflow: hidden; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+.board-page { overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+#stage { touch-action: none; }
+/* tlačítka: bez dvojitého poklepání pro zoom na mobilu */
+.board-page button, .board-page label, .board-page select { touch-action: manipulation; }
 #stage { position: fixed; inset: 0; overflow: hidden; }
 #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #board { touch-action: none; }
@@ -167,6 +170,7 @@ body.dark-ui .swatch span { box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
 .menu {
   position: fixed; z-index: 40; min-width: 210px; background: var(--panel); border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(15, 20, 30, .2), 0 0 0 1px var(--border); padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  max-height: calc(100% - 16px); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
 }
 .menu-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px 10px 4px; }
 .menu button {
@@ -184,6 +188,7 @@ body.dark-ui .swatch span { box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
 }
 .theme-dot { width: 20px; height: 20px; border-radius: 6px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
 
+.tb-arrow { display: none; }
 #pager {
   position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px;
   background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 6px;
@@ -211,7 +216,11 @@ body.dark-ui #textEditor { background: rgba(0,0,0,.25); }
 #toast { position: fixed; left: 50%; top: 70px; transform: translateX(-50%); background: #1f2430; color: #fff; padding: 10px 16px; border-radius: 10px; box-shadow: var(--shadow); z-index: 50; max-width: calc(100% - 32px); }
 body.dark-ui #toast { background: #e8eaee; color: #1f2430; }
 
-.modal { position: fixed; inset: 0; background: rgba(15, 20, 30, .45); display: grid; place-items: center; z-index: 30; padding: 16px; }
+.modal {
+  position: fixed; inset: 0; background: rgba(15, 20, 30, .45); display: flex; z-index: 30; padding: 16px;
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+}
+.modal > .modal-card { margin: auto; }
 .modal-card { background: var(--panel); border-radius: 16px; padding: 28px; width: 100%; max-width: 380px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
 .modal-card.wide { max-width: 600px; padding: 22px; }
 .modal-card h2 { margin: 0; }
@@ -265,7 +274,29 @@ body.dark-ui #toast { background: #e8eaee; color: #1f2430; }
   .user-chip .uname, .user-chip .badge { display: none; }
   #toolbar {
     left: 10px; right: 10px; top: auto; bottom: 10px; flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none;
+    touch-action: pan-x; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
+    scrollbar-width: none;
   }
+  #toolbar::-webkit-scrollbar { display: none; }
+  #toolbar > * { flex: none; }
+  /* náznak, že lišta pokračuje (stín u okraje, kam lze posunout) */
+  #toolbar.more-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+  #toolbar.more-left { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px); mask-image: linear-gradient(to right, transparent, #000 36px); }
+  #toolbar.more-left.more-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+  .tb-arrow {
+    position: fixed; bottom: 10px; height: 50px; width: 34px; z-index: 3; border: none; padding: 0; cursor: pointer;
+    display: grid; place-items: center; color: var(--text); background: var(--panel); box-shadow: var(--shadow);
+  }
+  .tb-arrow svg.i { width: 18px; height: 18px; stroke-width: 2.2; }
+  #tbLeft { left: 10px; border-radius: var(--radius) 0 0 var(--radius); }
+  #tbRight { right: 10px; border-radius: 0 var(--radius) var(--radius) 0; }
+  .modal { padding: 10px; }
+  .modal-card.wide { padding: 16px; gap: 10px; }
+  .geo-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .geo-item { padding: 6px 2px 5px; font-size: 11.5px; }
+  .geo-item canvas { width: 60px !important; height: 48px !important; }
+  .geo-hint { display: none; }
+  .formula-keys { max-height: 96px; overflow-y: auto; touch-action: pan-y; }
   #toolbar .group { grid-template-columns: none; grid-auto-flow: column; }
   #toolbar .group + .group, #toolbar .group + label { border-top: none; padding-top: 0; border-left: 1px solid var(--border); padding-left: 8px; }
   .custom-color { width: 38px; }
@@ -278,7 +309,7 @@ body.dark-ui #toast { background: #e8eaee; color: #1f2430; }
   #zoom .btn.icon { width: 32px; }
   #zoomReset { min-width: 48px; padding: 0 4px; }
   #selectionBar { bottom: 122px; }
-  #geoPanel { bottom: 178px; gap: 6px 8px; padding: 6px 8px; font-size: 13px; }
+  #geoPanel { bottom: 178px; gap: 6px 8px; padding: 6px 8px; font-size: 13px; max-height: 40vh; overflow-y: auto; touch-action: pan-y; }
   #geoPanel .geo-name { display: none; }
   #geoPanel select, .geo-dims input { height: 30px; }
   .geo-dims input { width: 54px; }

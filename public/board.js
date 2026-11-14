@@ -2273,6 +2273,8 @@
     if (current && current._phase) cancelCurrent();
     state.tool = t;
     document.querySelectorAll('.tool[data-tool]').forEach((b) => b.classList.toggle('active', b.dataset.tool === t));
+    const ab = document.querySelector(`.tool[data-tool="${t}"]`);
+    if (ab && getComputedStyle($('toolbar')).flexDirection === 'row') ab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     $('mathBtn').classList.toggle('active', t === 'measure' || t === 'angle');
     if (t !== 'select') select(null);
     renderSizes();
@@ -2288,6 +2290,31 @@
             : 'crosshair';
   }
   document.querySelectorAll('.tool[data-tool]').forEach((b) => (b.onclick = () => setTool(b.dataset.tool)));
+
+  // Mobil: lišta nástrojů se posouvá prstem; stín u okraje ukazuje, že pokračuje
+  const toolbarEl = $('toolbar');
+  function updateToolbarHints() {
+    const max = toolbarEl.scrollWidth - toolbarEl.clientWidth;
+    const horizontal = getComputedStyle(toolbarEl).flexDirection === 'row';
+    const left = horizontal && max > 2 && toolbarEl.scrollLeft > 2;
+    const right = horizontal && max > 2 && toolbarEl.scrollLeft < max - 2;
+    toolbarEl.classList.toggle('more-left', left);
+    toolbarEl.classList.toggle('more-right', right);
+    $('tbLeft').hidden = !left;
+    $('tbRight').hidden = !right;
+  }
+  $('tbLeft').onclick = () => toolbarEl.scrollBy({ left: -toolbarEl.clientWidth * 0.7, behavior: 'smooth' });
+  $('tbRight').onclick = () => toolbarEl.scrollBy({ left: toolbarEl.clientWidth * 0.7, behavior: 'smooth' });
+  toolbarEl.addEventListener('scroll', updateToolbarHints, { passive: true });
+  window.addEventListener('resize', updateToolbarHints);
+  // kolečko myši posouvá vodorovnou lištu (úzké okno na počítači)
+  toolbarEl.addEventListener('wheel', (e) => {
+    if (toolbarEl.scrollWidth > toolbarEl.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      toolbarEl.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, { passive: false });
+  setTimeout(updateToolbarHints, 0);
 
   function renderColors() {
     const box = $('colors');
