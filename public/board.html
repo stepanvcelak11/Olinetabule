@@ -111,10 +111,34 @@
   </div>
 
   <div class="menu" id="mathMenu" hidden>
+    <button data-math="geo"><svg class="i" viewBox="0 0 24 24"><path d="M4 9l6-4 8 0-6 4z"/><path d="M4 9v10h8V9M12 19l6-4V5"/></svg>Útvary a tělesa <small>kvádr, jehlan, kužel… (G)</small></button>
     <button data-math="measure"><svg class="i" viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>Pravítko <small>změří délku</small></button>
     <button data-math="angle"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h16M4 20L15 5"/><path d="M10 20a6 6 0 00-2.4-4.8"/></svg>Úhloměr <small>změří úhel</small></button>
     <button data-math="axes"><svg class="i" viewBox="0 0 24 24"><path d="M12 21V3M3 12h18M9 6l3-3 3 3M18 9l3 3-3 3"/></svg>Souřadnicové osy</button>
     <button data-math="formula"><svg class="i" viewBox="0 0 24 24"><path d="M4 12h6M7 9v6M14 8h6M14 16h6M17 5v6" /></svg>Vzorec <small>zlomky, odmocniny…</small></button>
+  </div>
+
+  <div id="geoPanel" hidden>
+    <span class="geo-name" id="geoName"></span>
+    <div class="geo-dims" id="geoDims"></div>
+    <select id="geoUnit" title="Jednotky">
+      <option value="cm">cm</option><option value="mm">mm</option><option value="dm">dm</option><option value="m">m</option><option value="">bez</option>
+    </select>
+    <label class="chk" title="Zobrazit rozměry"><input type="checkbox" id="geoShowD">Rozměry</label>
+    <label class="chk" title="Zobrazit názvy vrcholů"><input type="checkbox" id="geoShowV">Vrcholy</label>
+    <label class="chk" title="Zobrazit obvod a obsah / objem a povrch"><input type="checkbox" id="geoShowI">Výpočet</label>
+  </div>
+
+  <div id="geoModal" class="modal" hidden>
+    <div class="modal-card wide">
+      <h2>Útvary a tělesa</h2>
+      <div class="geo-sec">Rovinné útvary</div>
+      <div class="geo-grid" id="geoGrid2d"></div>
+      <div class="geo-sec">Tělesa</div>
+      <div class="geo-grid" id="geoGrid3d"></div>
+      <p class="geo-hint">Po vložení upravíte rozměry v panelu dole, nebo táhněte za pravý dolní roh. 1 cm = 1 čtvereček.</p>
+      <div class="modal-actions"><button class="btn" type="button" id="geoCancel">Zavřít</button></div>
+    </div>
   </div>
 
   <div id="toast" hidden></div>
@@ -144,6 +168,7 @@
   <div id="dropOverlay" hidden>Pusťte obrázek pro vložení na tabuli</div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/geo.js"></script>
   <script src="/board.js"></script>
 </body>
 </html>

@@ -32,6 +32,11 @@ a všichni připojení (student, případně další) na ní mohou zároveň ps�
 - **Matematika** (ikona Σ): pravítko (měří délku v jednotkách mřížky, 1 j = 1 čtvereček),
   úhloměr (vrchol → první rameno → druhé rameno), souřadnicové osy jedním klikem a **vzorce v LaTeXu**
   s tlačítky pro zlomky, odmocniny, mocniny, soustavy rovnic apod. Dvojklik na vzorec = úprava.
+- **Útvary a tělesa** (Σ → Útvary a tělesa, nebo klávesa G) – čtverec, obdélník, trojúhelník, pravoúhlý trojúhelník,
+  rovnoběžník, lichoběžník, pravidelný n-úhelník, kruh; krychle, kvádr, trojboký hranol, jehlan, kužel, válec, koule.
+  Tělesa jsou ve volném rovnoběžném promítání s neviditelnými hranami čárkovaně. Po vybrání se dole objeví panel:
+  přesné rozměry (a, b, c, v, r…), jednotky (cm, mm, dm, m), zobrazení rozměrů, názvů vrcholů a výpočtu
+  (obvod/obsah, objem/povrch). Velikost lze měnit i tažením za pravý dolní roh; 1 cm = 1 čtvereček mřížky.
 - **Export** – PNG aktuální strany nebo **PDF všech stran** (např. jako zápis pro studenta po hodině).
 - **Moje tabule** – úvodní stránka ukazuje tabule otevřené na tomto zařízení.
 - **Vzhled** – bílá, tmavá nebo zelená školní tabule (tmavý inkoust se na tmavém pozadí zobrazí jako křída).
@@ -47,6 +52,7 @@ a všichni připojení (student, případně další) na ní mohou zároveň ps�
 | E | guma | T | text |
 | X | mazání tahů | Delete | smazat vybrané |
 | K | laser | PageUp / PageDown | předchozí / další strana |
+| G | útvary a tělesa | | |
 
 ## Spuštění na vlastním počítači
 
@@ -75,7 +81,7 @@ k službě perzistentní disk a nastavte na něj `DATA_DIR`. Port se bere z prom
 
 ## Vrácení vylepšení zpět
 
-Vylepšení (lektor/zámek, strany, sledování lektora, laser, matematické pomůcky, PDF, seznam tabulí, tmavé/zelené pozadí)
+Vylepšení (lektor/zámek, strany, sledování lektora, laser, matematické pomůcky, útvary a tělesa, PDF, seznam tabulí, tmavé/zelené pozadí)
 jsou v commitech označených **`[Vylepšení]`**. Verze před nimi je commit `eac3198`.
 
 - Vrátit všechna vylepšení: `git revert --no-edit eac3198..HEAD`

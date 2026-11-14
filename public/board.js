@@ -230,6 +230,7 @@
       if (!el) return;
       Object.assign(el, props);
       resetDerived(el);
+      if (id === selectedId) updateGeoPanel();
       invalidate();
     });
     socket.on('delete', (ids) => {
@@ -413,18 +414,30 @@
     invalidate();
     return true;
   }
-  function doUpdate(id, props, before, record = true) {
+  function doUpdate(id, props, before, record = true, mergeKey = null) {
     if (!guardEdit()) return false;
     const el = elements.get(id);
     if (!el) return false;
     Object.assign(el, props);
     resetDerived(el);
     send('update', { id, props });
-    if (record) pushHistory({ t: 'upd', id, before, after: props });
+    if (record) pushHistory({ t: 'upd', id, before, after: props }, mergeKey);
+    if (id === selectedId) updateGeoPanel();
     invalidate();
     return true;
   }
-  function pushHistory(entry) {
+  function pushHistory(entry, mergeKey = null) {
+    // rychle po sobě jdoucí úpravy téhož (např. psaní čísla) = jeden krok Zpět
+    const top = undoStack[undoStack.length - 1];
+    if (mergeKey && top && top.merge === mergeKey && Date.now() - top.time < 2500) {
+      top.after = entry.after;
+      top.time = Date.now();
+      redoStack.length = 0;
+      updateUndoButtons();
+      return;
+    }
+    entry.merge = mergeKey;
+    entry.time = Date.now();
     undoStack.push(entry);
     if (undoStack.length > 200) undoStack.shift();
     redoStack.length = 0;
@@ -613,6 +626,9 @@
         break;
       case 'formula':
         drawFormula(c, el);
+        break;
+      case 'geo':
+        drawGeo(c, el);
         break;
     }
     c.restore();
@@ -826,6 +842,8 @@
     el._path = null;
     el._b = null;
     el._w = null;
+    el._m = null;
+    el._core = null;
   }
 
   /* ---------- Hranice a zásahy ---------- */
@@ -855,6 +873,11 @@
       b = { x1: el.x, y1: el.y, x2: el.x + el._w, y2: el.y + el._h };
     } else if (el.type === 'image' || el.type === 'formula') {
       b = { x1: el.x, y1: el.y, x2: el.x + el.w, y2: el.y + el.h };
+    } else if (el.type === 'geo') {
+      // včetně místa pro popisky a výpočet
+      const c = geoCore(el);
+      const info = el.showI ? Geo.compute(el).length * 20 + 24 : 0;
+      b = { x1: c.x1 - 60, y1: c.y1 - 30, x2: Math.max(c.x2 + 70, c.x1 + 170), y2: c.y2 + 30 + info };
     }
     el._b = b;
     return b;
@@ -908,6 +931,10 @@
       if (el.fill && nd <= 1) return true;
       return Math.abs(nd - 1) * Math.min(rx, ry) <= r;
     }
+    if (el.type === 'geo') {
+      const c = geoCore(el);
+      return x >= c.x1 - tol && x <= c.x2 + tol && y >= c.y1 - tol && y <= c.y2 + tol;
+    }
     return true; // text, obrázek, vzorec: stačí obdélník
   }
 
@@ -918,23 +945,25 @@
   }
 
   /* ---------- Výběr ---------- */
-  const RESIZABLE = (el) => el.type === 'image' || el.type === 'text' || el.type === 'formula' || (el.type === 'shape' && el.shape === 'axes');
+  const RESIZABLE = (el) => el.type === 'image' || el.type === 'text' || el.type === 'formula' || el.type === 'geo' || (el.type === 'shape' && el.shape === 'axes');
+  const selBounds = (el) => (el.type === 'geo' ? geoCore(el) : bounds(el));
   function select(id) {
     selectedId = id;
     $('selectionBar').hidden = !id;
     const el = id && elements.get(id);
     $('editSelBtn').hidden = !(el && el.type === 'formula');
+    updateGeoPanel();
     requestFrame();
   }
   function handleRect(el) {
-    const b = bounds(el);
+    const b = selBounds(el);
     const s = 12 / view.scale;
     return { x: b.x2 - s / 2, y: b.y2 - s / 2, s };
   }
   function drawSelection() {
     const el = selectedId && elements.get(selectedId);
     if (!el || !onPage(el)) return;
-    const b = bounds(el);
+    const b = selBounds(el);
     const pad = 4 / view.scale;
     ctx.save();
     ctx.strokeStyle = '#3b82f6';
@@ -1108,7 +1137,7 @@
         const h = handleRect(sel);
         const pad = 6 / view.scale;
         if (w.x >= h.x - pad && w.x <= h.x + h.s + pad && w.y >= h.y - pad && w.y <= h.y + h.s + pad) {
-          action = { kind: 'resize', id: sel.id, start: w, before: pickProps(sel) };
+          action = { kind: 'resize', id: sel.id, start: w, before: pickProps(sel), c0: { ...selBounds(sel) } };
           return;
         }
       }
@@ -1205,7 +1234,7 @@
         const el = elements.get(action.id);
         if (!el) { action = null; return; }
         let dx = w.x - action.start.x, dy = w.y - action.start.y;
-        if (el.shape === 'axes') { dx = snap(dx); dy = snap(dy); } // osy drží mřížku
+        if (el.shape === 'axes' || el.type === 'geo') { dx = snap(dx); dy = snap(dy); } // osy a útvary drží mřížku
         Object.assign(el, movedProps(action.before, dx, dy));
         resetDerived(el);
         action.moved = true;
@@ -1216,7 +1245,7 @@
       case 'resize': {
         const el = elements.get(action.id);
         if (!el) { action = null; return; }
-        Object.assign(el, resizedProps(el, action.before, w));
+        Object.assign(el, resizedProps(el, action.before, w, action.c0));
         resetDerived(el);
         action.moved = true;
         throttledLiveUpdate(el);
@@ -1296,6 +1325,7 @@
     }
     if (el.type === 'text') return { x: el.x, y: el.y, size: el.size };
     if (el.type === 'image' || el.type === 'formula') return { x: el.x, y: el.y, w: el.w, h: el.h };
+    if (el.type === 'geo') return { x: el.x, y: el.y, d: { ...Geo.dims(el) } };
     return {};
   }
   function movedProps(b, dx, dy) {
@@ -1307,7 +1337,14 @@
     }
     return { ...b, x: round(b.x + dx), y: round(b.y + dy) };
   }
-  function resizedProps(el, b, w) {
+  function resizedProps(el, b, w, c0) {
+    if (el.type === 'geo') {
+      // všechny rozměry se mění ve stejném poměru (po půl jednotce)
+      const f = Math.max(0.05, (w.x - c0.x1) / Math.max(1, c0.x2 - c0.x1));
+      const d = {};
+      for (const k in b.d) d[k] = k === 'n' ? b.d[k] : k === 'p' ? Math.round(b.d[k] * f * 2) / 2 : Math.max(0.5, Math.round(b.d[k] * f * 2) / 2);
+      return { d };
+    }
     if (el.type === 'image' || el.type === 'formula') {
       const ratio = b.h / b.w;
       const nw = Math.max(20, w.x - b.x);
@@ -1358,7 +1395,7 @@
     let changed = false;
     for (let i = arr.length - 1; i >= 0; i--) {
       const el = arr[i];
-      if (!onPage(el) || el.type === 'image' || el.type === 'formula') continue; // obrázky a vzorce mažte přes výběr
+      if (!onPage(el) || el.type === 'image' || el.type === 'formula' || el.type === 'geo') continue; // obrázky, vzorce a útvary mažte přes výběr
       if (hit(el, w.x, w.y, r)) {
         action.removed.push(clone(el));
         elements.delete(el.id);
@@ -1642,15 +1679,256 @@
   function freeSpot(w, h) {
     const c = toWorld(W / 2, H / 2);
     const others = [...elements.values()].filter(onPage).map(bounds);
-    const free = (x, y) => !others.some((b) => x < b.x2 && x + w > b.x1 && y < b.y2 && y + h > b.y1);
-    const step = Math.max(UNIT, Math.min(w, h) / 2);
-    for (let r = 0; r < 12; r++) {
+    // jen ve viditelné části (mimo lišty)
+    const narrow = W <= 760;
+    const vis = { a: toWorld(narrow ? 10 : 120, narrow ? 130 : 76), b: toWorld(W - 20, H - (narrow ? 330 : 200)) };
+    const inView = (x, y) => x >= vis.a.x && y >= vis.a.y && x + w <= vis.b.x && y + h <= vis.b.y;
+    const free = (x, y) => inView(x, y) && !others.some((b) => x < b.x2 && x + w > b.x1 && y < b.y2 && y + h > b.y1);
+    const step = UNIT;
+    for (let r = 0; r < 40; r++) {
       for (const [dx, dy] of r ? [[0, r], [0, -r], [r, 0], [-r, 0], [r, r], [-r, r], [r, -r], [-r, -r]] : [[0, 0]]) {
         const x = c.x - w / 2 + dx * step, y = c.y - h / 2 + dy * step;
         if (free(x, y)) return { x: round(x), y: round(y) };
       }
     }
-    return { x: round(c.x - w / 2), y: round(c.y - h / 2) };
+    // nevejde se: co nejvýš ve viditelné části, aby ho nezakryly panely dole
+    return { x: round(c.x - w / 2), y: round(Math.max(vis.a.y, Math.min(c.y - h / 2, vis.b.y - h))) };
+  }
+
+  /* =========================================================
+   *  Geometrické útvary a tělesa (model v geo.js)
+   * ======================================================= */
+  const geoModel = (el) => el._m || (el._m = Geo.model(el, UNIT));
+  function geoCore(el) {
+    if (el._core) return el._core;
+    const m = geoModel(el);
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    for (const p of m.pts.concat(m.verts.map((v) => v.p))) {
+      x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y);
+    }
+    return (el._core = { x1: x1 - 6, y1: y1 - 6, x2: x2 + 6, y2: y2 + 6 });
+  }
+  function geoUnit(el, pow = 1) {
+    const u = el.unit == null ? 'cm' : el.unit;
+    if (!u) return '';
+    return ' ' + u + (pow === 2 ? '²' : pow === 3 ? '³' : '');
+  }
+  function drawGeo(c, el) {
+    const m = geoModel(el);
+    const col = displayColor(el.color);
+    const dash = [7, 6];
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.strokeStyle = col;
+    c.fillStyle = col;
+    c.lineWidth = el.size || 2;
+    if (el.fill && (m.poly || m.circle)) {
+      c.save();
+      c.globalAlpha = 0.15;
+      c.beginPath();
+      if (m.poly) { c.moveTo(m.poly[0].x, m.poly[0].y); for (const p of m.poly.slice(1)) c.lineTo(p.x, p.y); c.closePath(); }
+      else c.arc(m.circle.cx, m.circle.cy, m.circle.r, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
+    for (const l of m.lines) {
+      c.setLineDash(l.dash ? dash : []);
+      c.beginPath();
+      c.moveTo(l.p.x, l.p.y);
+      c.lineTo(l.q.x, l.q.y);
+      c.stroke();
+    }
+    for (const e of m.ell) {
+      c.setLineDash(e.dash ? dash : []);
+      c.beginPath();
+      const [a0, a1] = e.part === 'front' ? [0, Math.PI] : e.part === 'back' ? [Math.PI, Math.PI * 2] : [0, Math.PI * 2];
+      c.ellipse(e.cx, e.cy, e.rx, e.ry, 0, a0, a1);
+      c.stroke();
+    }
+    c.setLineDash([]);
+    c.lineWidth = 1.3;
+    for (const mk of m.marks) {
+      const k = 11;
+      c.beginPath();
+      c.moveTo(mk.p.x + mk.u.x * k, mk.p.y + mk.u.y * k);
+      c.lineTo(mk.p.x + (mk.u.x + mk.w.x) * k, mk.p.y + (mk.u.y + mk.w.y) * k);
+      c.lineTo(mk.p.x + mk.w.x * k, mk.p.y + mk.w.y * k);
+      c.stroke();
+    }
+    if (el.showD) {
+      c.setLineDash([4, 5]);
+      for (const a of m.aux) { c.beginPath(); c.moveTo(a.p.x, a.p.y); c.lineTo(a.q.x, a.q.y); c.stroke(); }
+      c.setLineDash([]);
+      for (const dm of m.dims) {
+        const mid = { x: (dm.p.x + dm.q.x) / 2, y: (dm.p.y + dm.q.y) / 2 };
+        const t = `${dm.key} = ${fmtNum(dm.val, 2)}${geoUnit(el)}`;
+        c.save();
+        c.font = '600 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+        const tw = c.measureText(t).width + 10, th = 20;
+        c.restore();
+        let pos;
+        if (dm.off) {
+          pos = { x: mid.x + dm.off.x, y: mid.y + dm.off.y };
+          if (dm.off.x > 0) pos.x += tw / 2 - 6; // popisek výšky vpravo od čáry
+        } else {
+          // kolmo k hraně, směrem ven z útvaru, aby popisek nepřekrýval hranu ani vrcholy
+          const len = Math.hypot(dm.q.x - dm.p.x, dm.q.y - dm.p.y) || 1;
+          let nx = -(dm.q.y - dm.p.y) / len, ny = (dm.q.x - dm.p.x) / len;
+          if (nx * (mid.x - m.center.x) + ny * (mid.y - m.center.y) < 0) { nx = -nx; ny = -ny; }
+          const gap = (el.showV ? 10 : 4) + Math.abs(nx) * tw / 2 + Math.abs(ny) * th / 2;
+          pos = { x: mid.x + nx * gap, y: mid.y + ny * gap };
+        }
+        labelBox(c, t, pos.x, pos.y, col, 13);
+      }
+    }
+    // body (střed, pata výšky)
+    for (const v of m.verts) {
+      if (!v.name.startsWith('S')) continue;
+      if (!el.showD && !el.showV) continue;
+      c.beginPath();
+      c.arc(v.p.x, v.p.y, 2.6, 0, Math.PI * 2);
+      c.fill();
+    }
+    if (el.showV) {
+      c.save();
+      c.font = 'italic 600 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      for (const v of m.verts) {
+        let dx = v.p.x - m.center.x, dy = v.p.y - m.center.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1 || v.name.startsWith('S')) { dx = -0.7; dy = 0.7; } else { dx /= len; dy /= len; }
+        c.fillText(v.name, v.p.x + dx * 14, v.p.y + dy * 14);
+      }
+      c.restore();
+    }
+    if (el.showI) {
+      const core = geoCore(el);
+      c.save();
+      c.font = '600 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+      c.textBaseline = 'top';
+      Geo.compute(el).forEach((r, i) => {
+        c.fillText(`${r.sym} ${r.approx ? '≈' : '='} ${fmtNum(r.val, 2)}${geoUnit(el, r.pow)}`, core.x1, core.y2 + 28 + i * 20);
+      });
+      c.restore();
+    }
+  }
+
+  function newGeo(kind) {
+    const k = Geo.KINDS[kind];
+    return { id: uid(), type: 'geo', kind, d: { ...k.d }, unit: 'cm', showD: true, showV: false, showI: false, color: state.color, size: 2, fill: !!state.fill && k.group === '2d', x: 0, y: 0 };
+  }
+  function insertGeo(kind) {
+    if (!guardEdit()) return;
+    const el = newGeo(kind);
+    const b = bounds(el);
+    const pos = freeSpot(b.x2 - b.x1, b.y2 - b.y1);
+    el.x = snap(pos.x - b.x1);
+    el.y = snap(pos.y - b.y1);
+    resetDerived(el);
+    if (doAdd(el)) {
+      setTool('select');
+      select(el.id);
+    }
+  }
+  function openGeoPicker() {
+    if (!guardEdit()) return;
+    closeMenu();
+    const ink = getComputedStyle(document.body).color;
+    for (const group of ['2d', '3d']) {
+      const box = $(group === '2d' ? 'geoGrid2d' : 'geoGrid3d');
+      box.innerHTML = '';
+      for (const [kind, k] of Object.entries(Geo.KINDS)) {
+        if (k.group !== group) continue;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'geo-item';
+        const cv = document.createElement('canvas');
+        const cw = 76, ch = 60, r = window.devicePixelRatio || 1;
+        cv.width = cw * r; cv.height = ch * r;
+        cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+        const el = { ...newGeo(kind), showD: false, color: ink, fill: false };
+        const core = geoCore(el);
+        const sc = Math.min((cw - 10) / (core.x2 - core.x1), (ch - 10) / (core.y2 - core.y1));
+        const g = cv.getContext('2d');
+        g.setTransform(sc * r, 0, 0, sc * r, (cw / 2 - ((core.x1 + core.x2) / 2) * sc) * r, (ch / 2 - ((core.y1 + core.y2) / 2) * sc) * r);
+        el.size = 1.6 / sc;
+        const keep = meta.theme;
+        meta.theme = 'light'; // barvu bereme přímo z rozhraní
+        drawGeo(g, el);
+        meta.theme = keep;
+        const label = document.createElement('span');
+        label.textContent = k.name;
+        b.appendChild(cv);
+        b.appendChild(label);
+        b.onclick = () => { $('geoModal').hidden = true; insertGeo(kind); };
+        box.appendChild(b);
+      }
+    }
+    $('geoModal').hidden = false;
+  }
+  $('geoCancel').onclick = () => ($('geoModal').hidden = true);
+  $('geoModal').addEventListener('pointerdown', (e) => { if (e.target === $('geoModal')) $('geoModal').hidden = true; });
+
+  /* ---------- Panel rozměrů vybraného útvaru ---------- */
+  function updateGeoPanel() {
+    const el = selectedId && elements.get(selectedId);
+    const panel = $('geoPanel');
+    if (!el || el.type !== 'geo') { panel.hidden = true; return; }
+    panel.hidden = false;
+    $('geoName').textContent = Geo.KINDS[el.kind].name;
+    const d = Geo.dims(el);
+    const box = $('geoDims');
+    if (box.dataset.id !== el.id) {
+      box.dataset.id = el.id;
+      box.innerHTML = '';
+      for (const k of Object.keys(Geo.KINDS[el.kind].d)) {
+        const info = Geo.DIM_INFO[k] || { label: k };
+        const lab = document.createElement('label');
+        lab.className = 'dim';
+        lab.title = info.title || k;
+        const sp = document.createElement('i');
+        sp.textContent = info.label;
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.inputMode = 'decimal';
+        inp.step = info.step || 0.5;
+        inp.min = info.min != null ? info.min : 0.5;
+        if (info.max) inp.max = info.max;
+        inp.dataset.k = k;
+        inp.addEventListener('input', () => onGeoDim(k, inp));
+        lab.appendChild(sp);
+        lab.appendChild(inp);
+        box.appendChild(lab);
+      }
+    }
+    for (const inp of box.querySelectorAll('input')) if (document.activeElement !== inp) inp.value = d[inp.dataset.k];
+    $('geoUnit').value = el.unit == null ? 'cm' : el.unit;
+    $('geoShowD').checked = !!el.showD;
+    $('geoShowV').checked = !!el.showV;
+    $('geoShowI').checked = !!el.showI;
+  }
+  function onGeoDim(k, inp) {
+    const el = selectedId && elements.get(selectedId);
+    if (!el || el.type !== 'geo') return;
+    const info = Geo.DIM_INFO[k] || {};
+    let v = parseFloat(String(inp.value).replace(',', '.'));
+    if (!isFinite(v)) return;
+    if (k === 'n') v = Math.round(v);
+    if (v < (info.min != null ? info.min : 0.1) || (info.max && v > info.max) || Math.abs(v) > 200) return;
+    const before = { d: { ...Geo.dims(el) } };
+    if (before.d[k] === v) return;
+    doUpdate(el.id, { d: { ...before.d, [k]: v } }, before, true, 'geo:' + el.id + ':' + k);
+  }
+  $('geoUnit').addEventListener('change', (e) => {
+    const el = selectedId && elements.get(selectedId);
+    if (el) doUpdate(el.id, { unit: e.target.value }, { unit: el.unit == null ? 'cm' : el.unit });
+  });
+  for (const [id, key] of [['geoShowD', 'showD'], ['geoShowV', 'showV'], ['geoShowI', 'showI']]) {
+    $(id).addEventListener('change', (e) => {
+      const el = selectedId && elements.get(selectedId);
+      if (el) doUpdate(el.id, { [key]: e.target.checked }, { [key]: !!el[key] });
+    });
   }
 
   /* =========================================================
@@ -1955,6 +2233,7 @@
       setTool(m);
       toast(m === 'measure' ? 'Pravítko: táhněte mezi dvěma body (1 j = 1 čtvereček).' : 'Úhloměr: táhněte od vrcholu k prvnímu rameni.');
     } else if (m === 'axes') insertAxes();
+    else if (m === 'geo') openGeoPicker();
     else if (m === 'formula') openFormula(null);
   });
 
@@ -2093,7 +2372,9 @@
   const KEYS = { v: 'select', h: 'hand', p: 'pen', m: 'marker', e: 'eraser', x: 'strokeEraser', l: 'line', a: 'arrow', r: 'rect', o: 'ellipse', t: 'text', k: 'laser' };
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (!$('geoModal').hidden) { if (e.key === 'Escape') $('geoModal').hidden = true; return; }
     if (!$('formulaModal').hidden || !$('nameModal').hidden) return;
+    if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey) { openGeoPicker(); return; }
     const k = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
